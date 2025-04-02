@@ -13,7 +13,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 app.use(cors());
 app.use(bodyParser.json());
 
-app.get("/", async (res: Response) => {
+app.get("/", async (_req: Request, res: Response) => {
   res.json({ message: "welcome" });
 });
 
@@ -34,6 +34,7 @@ app.post("/hello", async (req: Request, res: Response) => {
     });
 
     const message = response.choices[0].message.content;
+    console.log(message);
 
     res.json({ message: message });
   } catch (error) {

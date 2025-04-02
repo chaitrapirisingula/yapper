@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 type Language = "Spanish" | "Telugu" | "Korean" | "Japanese";
 type Level = "beginner" | "intermediate" | "advanced" | "expert";
@@ -10,6 +11,8 @@ type QuestionType =
   | "antonyms";
 
 const Settings: React.FC = () => {
+  const navigate = useNavigate();
+
   const [language, setLanguage] = useState<Language>("Spanish");
   const [level, setLevel] = useState<Level>("beginner");
   const [questionTypes, setQuestionTypes] = useState<QuestionType[]>([
@@ -37,8 +40,15 @@ const Settings: React.FC = () => {
   };
 
   const handleStart = () => {
-    // send
-    alert("hi");
+    // Pass in settings to game
+    const queryString = new URLSearchParams({
+      language,
+      level,
+      timeLimit: timeLimit.toString(),
+      questionTypes: questionTypes.join(","),
+    }).toString();
+
+    navigate(`/game?${queryString}`);
   };
 
   return (
