@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-type Language = "Spanish" | "Telugu" | "Korean" | "Japanese";
+type Language = "Spanish" | "Telugu" | "Tamil" | "Korean" | "Japanese";
 type Level = "beginner" | "intermediate" | "advanced" | "expert";
 type QuestionType =
   | "word to definition"
@@ -21,7 +21,13 @@ const Settings: React.FC = () => {
   ]);
   const [timeLimit, setTimeLimit] = useState<number>(2);
 
-  const languages: Language[] = ["Spanish", "Telugu", "Korean", "Japanese"];
+  const languages: Language[] = [
+    "Spanish",
+    "Telugu",
+    "Tamil",
+    "Korean",
+    "Japanese",
+  ];
   const levels: Level[] = ["beginner", "intermediate", "advanced", "expert"];
   const allQuestionTypes: QuestionType[] = [
     "word to definition",
@@ -55,7 +61,7 @@ const Settings: React.FC = () => {
     <div className="w-full max-w-xl mx-auto p-6">
       <div className="flex flex-row items-center justify-center gap-2">
         <img src="./logo.png" alt="yapper" className="h-16"></img>
-        <h2 className="text-2xl text-gray-800 text-center">yapper</h2>
+        <h2 className="text-2xl text-gray-800 text-center font-bold">yapper</h2>
       </div>
 
       {/* Language Selection */}
