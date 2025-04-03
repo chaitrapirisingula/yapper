@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-type Language = "Spanish" | "Telugu" | "Tamil" | "Korean" | "Japanese";
+type Language = "Telugu" | "Tamil" | "Spanish" | "Korean" | "Japanese";
 type Level = "beginner" | "intermediate" | "advanced" | "expert";
 type QuestionType =
   | "word to definition"
@@ -13,7 +13,7 @@ type QuestionType =
 const Settings: React.FC = () => {
   const navigate = useNavigate();
 
-  const [language, setLanguage] = useState<Language>("Spanish");
+  const [language, setLanguage] = useState<Language>("Telugu");
   const [level, setLevel] = useState<Level>("beginner");
   const [questionTypes, setQuestionTypes] = useState<QuestionType[]>([
     "word to definition",
@@ -22,9 +22,9 @@ const Settings: React.FC = () => {
   const [timeLimit, setTimeLimit] = useState<number>(2);
 
   const languages: Language[] = [
-    "Spanish",
     "Telugu",
     "Tamil",
+    "Spanish",
     "Korean",
     "Japanese",
   ];

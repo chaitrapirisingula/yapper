@@ -117,7 +117,7 @@ const Game: React.FC = () => {
         }, 500); // 0.5 seconds delay
       } else {
         // For incorrect answers, stay on the current question
-        setFeedback("incorrect, try again...");
+        setFeedback(data.message);
       }
     } catch (error) {
       console.error("Error grading answer:", error);

@@ -36,8 +36,8 @@ export const GameOver: React.FC<GameOverProps> = ({
 
         <p className="text-2xl font-bold mt-6">score: {score}</p>
         <p className="mt-2 text-gray-600">
-          you answered {score} question{score !== 1 ? "s" : ""} correctly in{" "}
-          {timeLimit} minute{score !== 1 ? "s" : ""}
+          you answered {score} question{score !== 1 ? "s" : ""} in {timeLimit}{" "}
+          minute{score !== 1 ? "s" : ""}
         </p>
       </div>
 
