@@ -1,7 +1,7 @@
 # Use the official Node.js LTS image
 FROM node:18-alpine
 
-WORKDIR app
+WORKDIR /app
 
 # Copy package.json and install dependencies
 COPY package*.json ./
