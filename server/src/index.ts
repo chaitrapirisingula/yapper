@@ -10,6 +10,10 @@ const app = express();
 const port = 3000;
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 
+// Store conversation history per user
+const userConversations: Record<string, { role: string; content: string }[]> =
+  {};
+
 type QuestionType =
   | "word to definition"
   | "definition to word"
@@ -70,26 +74,50 @@ app.get("/", async (_req: Request, res: Response) => {
   res.json({ message: "welcome" });
 });
 
+// Function to manage conversation history
+function getOrCreateConversation(userId: string, systemMessage: string) {
+  if (!userConversations[userId]) {
+    userConversations[userId] = [{ role: "system", content: systemMessage }];
+  }
+  return userConversations[userId];
+}
+
+// Function to trim conversation history to avoid token overflow
+function trimConversation(userId: string) {
+  if (userConversations[userId].length > 10) {
+    userConversations[userId] = [
+      userConversations[userId][0], // Keep system message
+      ...userConversations[userId].slice(-9), // Keep latest 9 exchanges
+    ];
+  }
+}
+
 app.post("/hello", async (req: Request, res: Response) => {
   try {
-    interface UserInput {
-      language: string;
-    }
+    const userId = req.body.userId; // Unique user identifier
+    const language = req.body.language;
 
-    const userInput: UserInput = req.body;
+    const systemMessage =
+      "You are a language tutor that helps users greet in different languages.";
+    const conversation = getOrCreateConversation(userId, systemMessage);
 
-    const prompt = `Say hello in the following language: ${userInput.language} (say the actual phrase and the romanized version of it, do not include any words or information other than that, if there is a more formal or traditional word for hello use that)`;
+    conversation.push({
+      role: "user",
+      content: `Say hello in ${language}, including the romanized version.`,
+    });
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
-      messages: [{ role: "user", content: prompt }],
+      messages: conversation as OpenAI.ChatCompletionMessageParam[],
       temperature: 0.7,
     });
 
     const message = response.choices[0].message.content;
-    console.log(message);
+    conversation.push({ role: "assistant", content: message || "" });
 
-    res.json({ message: message });
+    trimConversation(userId);
+
+    res.json({ message });
   } catch (error) {
     console.error("Error getting response:", error);
     res.status(500).json({ error: "Failed to get message." });
@@ -98,49 +126,37 @@ app.post("/hello", async (req: Request, res: Response) => {
 
 app.post("/get-question", async (req: Request, res: Response) => {
   try {
-    interface UserInput {
-      language: string;
-      level: string;
-      type: QuestionType;
-      previousQuestions: string[];
-    }
+    const { userId, language, level, type, previousQuestions } = req.body;
 
-    const userInput: UserInput = req.body;
+    const systemMessage = `You are a ${language} tutor. Generate practice questions for language learners. 
+    Learners are English speakers so use romanized versions of words.`;
+    const conversation = getOrCreateConversation(userId, systemMessage);
 
     const prompt = `
-    You are a language tutor.
-    You will come up with questions for people to practice ${
-      userInput.language
-    }. 
-    In all the questions, use the actual phrases along with the romanized version of them so it is easy for English speakers to learn.
-    Make sure the answer is not revealed anywhere in either of the phrases.
-    Generate one question that follows this type: ${
-      userInput.type
-    }. The question should be for a ${userInput.level} learner. 
-    Questions for that type should follow this EXACT format: ${
-      questionTypeMap.get(userInput.type)?.description
-    }. Here is an example for a spanish beginner question of that type: ${
-      questionTypeMap.get(userInput.type)?.example
-    }. Base the question off this and change it for given language (${
-      userInput.language
-    }).
-    The question should be short and something one can quickly type up an answer for. 
-    Please ask a very easy question with simple words for beginner levels.
-    Also, here are the previously asked questions: ${userInput.previousQuestions.join()}. Do not repeat any of these.
-    Only say the question. Do not include the answer to the question or any other information. 
-    ONCE AGAIN THE ANSWER SHOULD NOT BE REVEALED IN YOUR RESPONSE.
+      Generate a ${level} level question for learning ${language}.
+      The question should be of type '${type}': ${
+      questionTypeMap.get(type)?.description
+    }.
+      Example question for Spanish: ${questionTypeMap.get(type)?.example}.
+      Do not repeat any past questions: ${previousQuestions.join(", ")}.
+      Use romanized versions of words in the question.
+      Keep the question concise. Do NOT include the answer.
     `;
+
+    conversation.push({ role: "user", content: prompt });
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
-      messages: [{ role: "user", content: prompt }],
+      messages: conversation as OpenAI.ChatCompletionMessageParam[],
       temperature: 0.7,
     });
 
     const message = response.choices[0].message.content;
-    console.log(message);
+    conversation.push({ role: "assistant", content: message || "" });
 
-    res.json({ message: message });
+    trimConversation(userId);
+
+    res.json({ message });
   } catch (error) {
     console.error("Error getting response:", error);
     res.status(500).json({ error: "Failed to get question." });
@@ -149,41 +165,33 @@ app.post("/get-question", async (req: Request, res: Response) => {
 
 app.post("/grade-answer", async (req: Request, res: Response) => {
   try {
-    interface UserInput {
-      language: string;
-      question: string;
-      answer: string;
-    }
+    const { userId, language, question, answer } = req.body;
 
-    const userInput: UserInput = req.body;
+    const systemMessage = `You are a ${language} tutor grading student answers. Be lenient on spelling and accents.`;
+    const conversation = getOrCreateConversation(userId, systemMessage);
 
     const prompt = `
-    You are a language tutor teaching ${userInput.language}.
-    You will are grading a student's answer to this question: ${userInput.question}. 
-    The student answered this: ${userInput.answer}. Is this correct?
-    Use the best judgement for determining if the student's answer is close enough to the expected answer.
-    It is ok for the student to respond in the romanized answer.
-    It should be considered correct if the students answer sounds like the romanized version of the expected answer.
-    For example, if the student is learning telugu and the expected answer includes "ఎక్కువ", it should be considered correct if they answer "ekkuva".
-    Assume they are unable to use the special characters.
-    Be leniant on tildes, accents, and special characters. If that is the only thing the student's answer is missing, it should be considered correct.
-    Also be leniant on spelling unless it is crucial to the question. 
-    REMEMBER THERE CAN BE MULTIPLE CORRECT ANSWERS SO IF THE STUDENTS ANSWER SEEMS CLOSE TO WHAT YOU EXPECT, IT SHOULD BE CONSIDERED CORRECT.
-    The student's answer will be short and you should consider answers correct even if the spelling is slightly off.
-    If the answer is incorrect, respond with "false, it should be " followed by the correct answer. 
-    If the answer is correct, respond with just "true".
+      Grade this ${language} answer.
+      Question: "${question}"
+      Student's answer: "${answer}"
+      If correct, respond with "true". If incorrect, respond with "false, it should be {correct answer}".
+      Accept romanized answers if they match the expected pronunciation.
     `;
+
+    conversation.push({ role: "user", content: prompt });
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
-      messages: [{ role: "user", content: prompt }],
+      messages: conversation as OpenAI.ChatCompletionMessageParam[],
       temperature: 0.7,
     });
 
     const message = response.choices[0].message.content;
-    console.log(message);
+    conversation.push({ role: "assistant", content: message || "" });
 
-    res.json({ message: message });
+    trimConversation(userId);
+
+    res.json({ message });
   } catch (error) {
     console.error("Error getting response:", error);
     res.status(500).json({ error: "Failed to grade." });

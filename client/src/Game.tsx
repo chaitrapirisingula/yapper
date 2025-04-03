@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { v4 as uuidv4 } from "uuid";
 import { Timer } from "./Timer";
 import { QuestionCard } from "./Question";
 import { GameOver } from "./Score";
@@ -7,6 +8,7 @@ import { GameOver } from "./Score";
 const Game: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const uid = uuidv4();
 
   // Get query parameters
   const language = searchParams.get("language");
@@ -52,6 +54,7 @@ const Game: React.FC = () => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            userId: uid,
             language: language,
             level: level,
             type: randomType,
@@ -86,6 +89,7 @@ const Game: React.FC = () => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            userId: uid,
             language: language,
             question: currentQuestion,
             answer: userAnswer,
