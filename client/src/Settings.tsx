@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 type Language = "Telugu" | "Tamil" | "Spanish" | "Korean" | "Japanese";
-type Level = "beginner" | "intermediate" | "advanced" | "expert";
+type Level = "beginner" | "intermediate" | "advanced";
 type QuestionType =
   | "word to definition"
   | "definition to word"
@@ -28,7 +28,7 @@ const Settings: React.FC = () => {
     "Korean",
     "Japanese",
   ];
-  const levels: Level[] = ["beginner", "intermediate", "advanced", "expert"];
+  const levels: Level[] = ["beginner", "intermediate", "advanced"];
   const allQuestionTypes: QuestionType[] = [
     "word to definition",
     "definition to word",
