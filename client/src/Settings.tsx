@@ -19,7 +19,7 @@ const Settings: React.FC = () => {
     "word to definition",
     "definition to word",
   ]);
-  const [timeLimit, setTimeLimit] = useState<number>(2);
+  const [timeLimit, setTimeLimit] = useState<number>(1);
 
   const languages: Language[] = [
     "Telugu",
@@ -136,7 +136,7 @@ const Settings: React.FC = () => {
           <input
             type="range"
             min="1"
-            max="10"
+            max="5"
             step="1"
             value={timeLimit}
             onChange={(e) => setTimeLimit(parseInt(e.target.value))}

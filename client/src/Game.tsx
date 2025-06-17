@@ -10,13 +10,11 @@ const Game: React.FC = () => {
   const navigate = useNavigate();
   const uid = uuidv4();
 
-  // Get query parameters
   const language = searchParams.get("language");
   const level = searchParams.get("level");
   const timeLimit = searchParams.get("timeLimit");
   const questionTypes = searchParams.get("questionTypes")?.split(",") || [];
 
-  // Game state
   const [currentQuestion, setCurrentQuestion] = useState<string>("");
   const [currentQuestionType, setCurrentQuestionType] = useState<string>("");
   const [userAnswer, setUserAnswer] = useState<string>("");
@@ -27,17 +25,21 @@ const Game: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Convert timeLimit to seconds for the timer
   const timeLimitInSeconds = parseInt(timeLimit || "0") * 60;
 
+  const LOCAL_STORAGE_KEY = `previousQuestionsFor${language}`;
+
   useEffect(() => {
-    // Redirect to home if any required param is missing
     if (!language || !level || !timeLimit || !questionTypes.length) {
       navigate("/");
       return;
     }
 
-    // Initial question fetch
+    const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (stored) {
+      setPreviousQuestions(JSON.parse(stored));
+    }
+
     fetchNextQuestion();
   }, []);
 
@@ -48,6 +50,11 @@ const Game: React.FC = () => {
       const randomType =
         questionTypes[Math.floor(Math.random() * questionTypes.length)];
 
+      const recentQuestions = [
+        ...previousQuestions.slice(-50),
+        currentQuestion,
+      ].filter(Boolean); // avoid empty strings
+
       const response = await fetch(
         `${import.meta.env.VITE_BACKEND_URL}/get-question`,
         {
@@ -55,24 +62,22 @@ const Game: React.FC = () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             userId: uid,
-            language: language,
-            level: level,
+            language,
+            level,
             type: randomType,
-            previousQuestions: [...previousQuestions, currentQuestion],
+            previousQuestions: recentQuestions,
           }),
         }
       );
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch question");
-      }
+      if (!response.ok) throw new Error("Failed to fetch question");
 
       const data = await response.json();
       setCurrentQuestion(data.message);
       setCurrentQuestionType(randomType);
       setUserAnswer("");
-    } catch (error) {
-      console.error("Error fetching question:", error);
+    } catch (err) {
+      console.error("Error fetching question:", err);
       setError("Failed to load question. Please try again.");
     } finally {
       setLoading(false);
@@ -90,48 +95,42 @@ const Game: React.FC = () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             userId: uid,
-            language: language,
+            language,
             question: currentQuestion,
             answer: userAnswer,
           }),
         }
       );
 
-      if (!response.ok) {
-        throw new Error("Failed to grade answer");
-      }
+      if (!response.ok) throw new Error("Failed to grade answer");
 
       const data = await response.json();
 
       if (data.message.toLowerCase() === "true") {
-        // Add current question to previous questions to avoid repetition
-        setPreviousQuestions([...previousQuestions, currentQuestion]);
-        // Increment score
-        setScore(score + 1);
+        const updatedQuestions = [...previousQuestions, currentQuestion];
+        setPreviousQuestions(updatedQuestions);
+        localStorage.setItem(
+          LOCAL_STORAGE_KEY,
+          JSON.stringify(updatedQuestions)
+        );
 
-        // Add a success message or feedback
+        setScore(score + 1);
         setFeedback("nice work!");
 
-        // Wait for a short time before fetching the next question
         setTimeout(() => {
-          // Clear any feedback
           setFeedback("");
-          // Fetch next question
           fetchNextQuestion();
-        }, 500); // 0.5 seconds delay
+        }, 500);
       } else {
-        // For incorrect answers, stay on the current question
         setFeedback(data.message);
       }
-    } catch (error) {
-      console.error("Error grading answer:", error);
+    } catch (err) {
+      console.error("Error grading answer:", err);
       setError("Failed to grade answer. Please try again.");
     }
   };
 
-  const handleTimeUp = () => {
-    setGameOver(true);
-  };
+  const handleTimeUp = () => setGameOver(true);
 
   if (gameOver) {
     return (
@@ -147,7 +146,7 @@ const Game: React.FC = () => {
   return (
     <div className="w-full max-w-xl mx-auto p-6">
       <div className="flex flex-row items-center justify-center gap-2">
-        <img src="./logo.png" alt="yapper" className="h-16"></img>
+        <img src="./logo.png" alt="yapper" className="h-16" />
         <h2 className="text-2xl text-gray-800 text-center font-bold">yapper</h2>
       </div>
 
